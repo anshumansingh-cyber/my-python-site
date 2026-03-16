@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Crop Portal</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f9f4; text-align: center; padding-top: 60px; }
+        .search-container { background: white; padding: 40px; border-radius: 15px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 380px; }
+        h1 { color: #2d5a27; }
+        select, input { padding: 12px; width: 100%; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; margin-bottom: 15px; }
+        button { padding: 14px; background-color: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: 0.3s; }
+        button:hover { background-color: #45a049; }
+        #loader { display: none; margin: 20px auto; border: 4px solid #f3f3f3; border-top: 4px solid #4caf50; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <h1>🌾 Crop Portal</h1>
+        <form action="/get_crop" method="POST" onsubmit="showLoader()">
+            <label style="font-size:12px; color:#666; display:block; text-align:left;">Choose Language:</label>
+            <select name="language">
+                <option value="en">English</option>
+                <option value="hi">Hindi (हिन्दी)</option>
+                <option value="bn">Bengali (বাংলা)</option>
+                <option value="mr">Marathi (मराठी)</option>
+                <option value="te">Telugu (తెలుగు)</option>
+                <option value="ta">Tamil (தமிழ்)</option>
+                <option value="gu">Gujarati (ગુજરાતી)</option>
+                <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                <option value="ml">Malayalam (മലയാളം)</option>
+                <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                <option value="ur">Urdu (اردو)</option>
+            </select>
+            <input type="text" name="search_box" list="crop_list" placeholder="Search Crop..." required autocomplete="off">
+            <datalist id="crop_list">
+                {% for crop in crops %} <option value="{{ crop }}"> {% endfor %}
+            </datalist>
+            <button type="submit" id="search-btn">Search & Translate</button>
+            <div id="loader"></div>
+        </form>
+    </div>
+    <script>
+        function showLoader() {
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('search-btn').innerText = 'Translating Whole Page...';
+        }
+    </script>
+</body>
+</html>
+
