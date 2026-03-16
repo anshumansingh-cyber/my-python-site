@@ -21,7 +21,7 @@
         .back-link { display: inline-block; text-decoration: none; color: #4caf50; font-weight: bold; margin-bottom: 20px; }
         .back-link:hover { text-decoration: underline; }
 
-        /* Feature 7: Mobile Responsive Card View */
+        /* Mobile Responsive Card View */
         @media screen and (max-width: 600px) {
             table, thead, tbody, th, td, tr { display: block; }
             thead tr { position: absolute; top: -9999px; left: -9999px; }
@@ -51,12 +51,11 @@
 
         {% if data.image %}
         <div class="crop-img-box">
-            <!-- Ensure your images are in static/images/ folder -->
-            <img src="{{ url_for('static', filename='images/' + data.image) }}" alt="{{ data.name }}">
+            <!-- Corrected path: looks inside static/images/ folder -->
+            <img src="{{ url_for('static', filename='images/' + data.image) }}" alt="{{ data.name }}" onerror="this.style.display='none'">
         </div>
         {% endif %}
 
-        <!-- Loop through Requirements, Steps, and Risks sections -->
         {% for section_name, section_data in [('Requirements', data.requirements), ('Steps', data.steps), ('Risks', data.risks)] %}
         <div style="margin-bottom: 40px;">
             <h2 style="color: #2e7d32; border-left: 5px solid #4caf50; padding-left: 10px;">{{ section_name }}</h2>
@@ -74,7 +73,6 @@
                     {% for row in section_data.rows %}
                     <tr>
                         {% for col in section_data.columns %}
-                            <!-- data-label is critical for the mobile card view to show the header name -->
                             <td data-label="{{ col }}">{{ row[col] }}</td>
                         {% endfor %}
                     </tr>
@@ -89,8 +87,7 @@
     </div>
 
     <div style="text-align: center; margin-top: 30px; color: #888; font-size: 12px;">
-        Generated via Crop Portal Translation Engine
+        Generated via Crop Portal Engine
     </div>
 </body>
 </html>
-
