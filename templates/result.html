@@ -51,8 +51,8 @@
 
         {% if data.image %}
         <div class="crop-img-box">
-            <!-- Corrected path: looks inside static/images/ folder -->
-            <img src="{{ url_for('static', filename='images/' + data.image) }}" alt="{{ data.name }}" onerror="this.style.display='none'">
+            <!-- FIXED: Looking directly in 'static' folder now -->
+            <img src="{{ url_for('static', filename=data.image) }}" alt="{{ data.name }}" onerror="this.style.display='none'">
         </div>
         {% endif %}
 
