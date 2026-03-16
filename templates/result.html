@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ data.name }} Details</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; max-width: 900px; margin: auto; background-color: #fcfdfc; }
+        h1 { color: #1b5e20; border-bottom: 3px solid #4caf50; padding-bottom: 10px; }
+        .container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        /* Responsive Image CSS */
+        .crop-img-box { text-align: center; margin: 20px 0; }
+        .crop-img-box img { max-width: 100%; height: auto; width: 400px; border-radius: 10px; border: 2px solid #4caf50; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: white; }
+        th, td { border: 1px solid #e0e0e0; padding: 12px; text-align: left; }
+        th { background-color: #4caf50; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        
+        .back-link { display: inline-block; text-decoration: none; color: #4caf50; font-weight: bold; margin-bottom: 20px; }
+        .back-link:hover { text-decoration: underline; }
+
+        /* Feature 7: Mobile Responsive Card View */
+        @media screen and (max-width: 600px) {
+            table, thead, tbody, th, td, tr { display: block; }
+            thead tr { position: absolute; top: -9999px; left: -9999px; }
+            tr { border: 1px solid #ccc; margin-bottom: 15px; border-radius: 8px; padding: 10px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+            td { border: none; border-bottom: 1px solid #eee; position: relative; padding-left: 50% !important; text-align: right; min-height: 40px; display: flex; align-items: center; justify-content: flex-end; }
+            td:last-child { border-bottom: 0; }
+            td:before { 
+                content: attr(data-label); 
+                position: absolute; 
+                left: 10px; 
+                width: 45%; 
+                font-weight: bold; 
+                text-align: left; 
+                color: #2e7d32; 
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-link">← Back to Search / वापस खोजें</a>
+
+    <div class="container">
+        <h1>{{ data.name }}</h1>
+
+        {% if data.image %}
+        <div class="crop-img-box">
+            <!-- Ensure your images are in static/images/ folder -->
+            <img src="{{ url_for('static', filename='images/' + data.image) }}" alt="{{ data.name }}">
+        </div>
+        {% endif %}
+
+        <!-- Loop through Requirements, Steps, and Risks sections -->
+        {% for section_name, section_data in [('Requirements', data.requirements), ('Steps', data.steps), ('Risks', data.risks)] %}
+        <div style="margin-bottom: 40px;">
+            <h2 style="color: #2e7d32; border-left: 5px solid #4caf50; padding-left: 10px;">{{ section_name }}</h2>
+            
+            {% if section_data.rows %}
+            <table>
+                <thead>
+                    <tr>
+                        {% for col in section_data.columns %}
+                            <th>{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in section_data.rows %}
+                    <tr>
+                        {% for col in section_data.columns %}
+                            <!-- data-label is critical for the mobile card view to show the header name -->
+                            <td data-label="{{ col }}">{{ row[col] }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <p style="color: #888; font-style: italic;">No information available for this section.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <div style="text-align: center; margin-top: 30px; color: #888; font-size: 12px;">
+        Generated via Crop Portal Translation Engine
+    </div>
+</body>
+</html>
+
