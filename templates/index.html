@@ -5,48 +5,107 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Indian Crop Portal</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f9f4; text-align: center; padding-top: 60px; }
-        .search-container { background: white; padding: 40px; border-radius: 15px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 380px; }
-        h1 { color: #2d5a27; }
-        select, input { padding: 12px; width: 100%; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; box-sizing: border-box; margin-bottom: 15px; }
-        button { padding: 14px; background-color: #4caf50; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: 0.3s; }
-        button:hover { background-color: #45a049; }
-        #loader { display: none; margin: 20px auto; border: 4px solid #f3f3f3; border-top: 4px solid #4caf50; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f9f4; margin: 0; padding: 20px; text-align: center; }
+        .flex-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; max-width: 1000px; margin: auto; }
+        .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); flex: 1; min-width: 320px; border-top: 5px solid #4caf50; }
+        select, input { padding: 12px; width: 100%; border: 2px solid #eee; border-radius: 8px; margin-bottom: 15px; font-size: 15px; box-sizing: border-box; }
+        .btn { padding: 14px; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
+        .voice-btn { background: #fff; border: 2px solid #4caf50; color: #4caf50; margin-bottom: 10px; width: auto; padding: 10px 20px; }
+        .voice-btn.listening { background: #ff5252; color: white; border-color: #ff5252; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .rec-item-btn { background: #f1f8e9; margin: 8px 0; padding: 12px; border-radius: 8px; color: #2d5a27; font-weight: bold; text-align: left; width: 100%; border: 1px solid #c8e6c9; cursor: pointer; display: block; }
+        #loader { display: none; margin: 15px auto; border: 4px solid #f3f3f3; border-top: 4px solid #4caf50; border-radius: 50%; width: 25px; height: 25px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="search-container">
-        <h1>🌾 Crop Portal</h1>
-        <form action="/get_crop" method="POST" onsubmit="showLoader()">
-            <label style="font-size:12px; color:#666; display:block; text-align:left;">Choose Language:</label>
-            <select name="language">
-                <option value="en">English</option>
-                <option value="hi">Hindi (हिन्दी)</option>
-                <option value="bn">Bengali (বাংলা)</option>
-                <option value="mr">Marathi (मराठी)</option>
-                <option value="te">Telugu (తెలుగు)</option>
-                <option value="ta">Tamil (தமிழ்)</option>
-                <option value="gu">Gujarati (ગુજરાતી)</option>
-                <option value="kn">Kannada (ಕನ್ನಡ)</option>
-                <option value="ml">Malayalam (മലയാളം)</option>
-                <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
-                <option value="ur">Urdu (اردو)</option>
-            </select>
-            <input type="text" name="search_box" list="crop_list" placeholder="Search Crop..." required autocomplete="off">
-            <datalist id="crop_list">
-                {% for crop in crops %} <option value="{{ crop }}"> {% endfor %}
-            </datalist>
-            <button type="submit" id="search-btn">Search & Translate</button>
-            <div id="loader"></div>
-        </form>
+    <h1 style="color: #1b5e20;">🌾 Indian Agriculture Portal</h1>
+    <div class="flex-container">
+        <!-- Search Section -->
+        <div class="card">
+            <h2>🔍 Crop Information</h2>
+            <form action="/get_crop" id="search-form" method="POST" onsubmit="showLoader()">
+                <select name="language" id="lang-select">
+                    <option value="en" data-voice="en-IN">English</option>
+                    <option value="hi" data-voice="hi-IN">Hindi (हिन्दी)</option>
+                    <option value="bn" data-voice="bn-IN">Bengali (বাংলা)</option>
+                    <option value="mr" data-voice="mr-IN">Marathi (मराठी)</option>
+                    <option value="te" data-voice="te-IN">Telugu (తెలుగు)</option>
+                    <option value="ta" data-voice="ta-IN">Tamil (தமிழ்)</option>
+                    <option value="gu" data-voice="gu-IN">Gujarati (ગુજરાતી)</option>
+                    <option value="kn" data-voice="kn-IN">Kannada (ਕನ್ನಡ)</option>
+                    <option value="ml" data-voice="ml-IN">Malayalam (മലയാളം)</option>
+                </select>
+                <button type="button" class="btn voice-btn" id="voice-trigger">🎤 Click to Speak</button>
+                <input type="text" name="search_box" id="search-input" list="crop_list" placeholder="Speak or Type Crop Name..." required autocomplete="off">
+                <datalist id="crop_list">
+                    {% for crop in crops %} <option value="{{ crop }}"> {% endfor %}
+                </datalist>
+                <button type="submit" class="btn" style="background:#4caf50" id="search-btn">Get Details</button>
+                <div id="loader"></div>
+            </form>
+        </div>
+
+        <!-- NPK Section -->
+        <div class="card">
+            <h2>🧪 NPK Recommender</h2>
+            <p style="font-size: 13px; color: #666;">Enter soil test values (kg/ha)</p>
+            <form action="/recommend" method="POST">
+                <input type="number" name="n" placeholder="Nitrogen (N)" required>
+                <input type="number" name="p" placeholder="Phosphorus (P)" required>
+                <input type="number" name="k" placeholder="Potassium (K)" required>
+                <button type="submit" class="btn" style="background:#2e7d32">Recommend Crops</button>
+            </form>
+            {% if rec_results %}
+                <div style="margin-top:20px; text-align:left;">
+                    <h4>Matching Crops:</h4>
+                    {% for r in rec_results %}
+                        <form action="/get_crop" method="POST">
+                            <input type="hidden" name="search_box" value="{{ r }}">
+                            <button type="submit" class="rec-item-btn">🌾 {{ r }} ➔</button>
+                        </form>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
     </div>
+
     <script>
+        const voiceBtn = document.getElementById('voice-trigger');
+        const searchInput = document.getElementById('search-input');
+        const langSelect = document.getElementById('lang-select');
+        const searchForm = document.getElementById('search-form');
+
+        if ('webkitSpeechRecognition' in window) {
+            const recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+
+            voiceBtn.addEventListener('click', () => {
+                recognition.lang = langSelect.options[langSelect.selectedIndex].getAttribute('data-voice');
+                recognition.start();
+                voiceBtn.classList.add('listening');
+                voiceBtn.innerText = 'Listening...';
+            });
+
+            recognition.onresult = (event) => {
+                searchInput.value = event.results[0][0].transcript.replace(/\.$/, ""); 
+                voiceBtn.classList.remove('listening');
+                voiceBtn.innerText = '🎤 Click to Speak';
+                searchForm.submit(); // Automatic search
+            };
+
+            recognition.onerror = () => {
+                voiceBtn.classList.remove('listening');
+                voiceBtn.innerText = '🎤 Click to Speak';
+            };
+        } else {
+            voiceBtn.style.display = 'none';
+        }
+
         function showLoader() {
             document.getElementById('loader').style.display = 'block';
-            document.getElementById('search-btn').innerText = 'Translating Whole Page...';
+            document.getElementById('search-btn').innerText = 'Translating...';
         }
     </script>
 </body>
 </html>
-
