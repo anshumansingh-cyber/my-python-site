@@ -137,6 +137,19 @@ def recommend():
         return render_template('index.html', crops=df.iloc[:,1].tolist(), rec_results=recommended)
     except: return "Check Excel NPK range format (e.g. 100-150)."
 
+# --- NEW HEALTH CHECK ROUTE ---
+@app.route('/healthz')
+def health_check():
+    return "OK", 200
+
+# --- UPDATED RENDER BINDING ---
 if __name__ == '__main__':
-    if not os.path.exists('flask_cache'): os.makedirs('flask_cache')
-    app.run(debug=True)
+    # Ensure cache directory exists
+    if not os.path.exists('flask_cache'): 
+        os.makedirs('flask_cache')
+    
+    # Use Render's environment variable for Port, fallback to 10000
+    port = int(os.environ.get("PORT", 10000))
+    
+    # host='0.0.0.0' is required to make the app accessible on Render
+    app.run(host='0.0.0.0', port=port)
