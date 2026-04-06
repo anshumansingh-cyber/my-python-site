@@ -3,107 +3,117 @@ import pandas as pd
 from flask import Flask, render_template, request
 from deep_translator import GoogleTranslator
 from flask_caching import Cache
+from thefuzz import process  # Smart matching for speech results
 
 app = Flask(__name__)
 
-# CHANGED: Using 'SimpleCache' for Render. 
-# FileSystemCache often fails on free cloud hosts without persistent disks.
-cache = Cache(app, config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 604800})
+# Cache setup for speed (1 week duration)
+cache = Cache(app, config={
+    'CACHE_TYPE': 'FileSystemCache',
+    'CACHE_DIR': 'flask_cache',
+    'CACHE_DEFAULT_TIMEOUT': 604800
+})
 
-def search_excel(user_input):
+def translate_to_english(text, source_lang):
+    """Converts user input (voice/text) to English for searching."""
+    if source_lang == 'en': return text
+    try:
+        return GoogleTranslator(source='auto', target='en').translate(text)
+    except: return text
+
+def parse_range(range_str, user_val):
+    """Checks if soil value falls within kg/ha ranges like '100-150'."""
+    try:
+        if '-' in str(range_str):
+            low, high = map(float, str(range_str).split('-'))
+            return low <= float(user_val) <= high
+        return False
+    except: return False
+
+def search_excel(english_input):
+    """Finds the best match in the English database using Fuzzy logic."""
     try:
         excel_data = pd.read_excel('database.xlsx', sheet_name=None)
-        for sheet in excel_data:
-            excel_data[sheet].columns = excel_data[sheet].columns.astype(str).str.strip().str.lower()
+        clean_data = {str(k).strip().lower(): v for k, v in excel_data.items()}
+        for s in clean_data:
+            clean_data[s].columns = clean_data[s].columns.astype(str).str.strip().str.lower()
 
-        df_names = excel_data['crop_name']
-        # Search in the second column (index 1) which usually contains names
-        match = df_names[df_names.iloc[:, 1].str.contains(user_input, case=False, na=False)]
+        df_names = clean_data.get('crop_name')
+        crops_in_db = df_names['crop_name'].astype(str).tolist()
         
-        if match.empty: return None
+        # SMART MATCH: Handles minor speech errors or synonyms
+        best_match, score = process.extractOne(english_input, crops_in_db)
+        if score < 60: return None
 
-        crop_row = match.iloc[0]
-        crop_id = crop_row.iloc[0] # Assuming first column is the ID
+        match = df_names[df_names['crop_name'] == best_match].iloc[0]
+        cid = match['crop_id']
         
-        def get_sheet_info(sheet_key, cid):
-            if sheet_key not in excel_data: return {"rows": [], "columns": []}
-            df = excel_data[sheet_key]
-            filtered_df = df[df.iloc[:, 1] == cid].copy() # Filter by crop_id column
-            display_cols = filtered_df.columns.tolist()[2:]
-            return {
-                "rows": filtered_df.to_dict('records'),
-                "columns": display_cols
-            }
+        def get_info(key, crop_id):
+            if key not in clean_data: return {"rows": [], "columns": []}
+            df = clean_data[key]
+            filtered = df[df['crop_id'] == crop_id].copy()
+            cols = filtered.columns.tolist()[2:]
+            return {"rows": filtered.to_dict('records'), "columns": cols}
 
         return {
-            "name": str(crop_row.iloc[1]),
-            "image": crop_row.get('image_file', None),
-            "requirements": get_sheet_info('crop_requirement', crop_id),
-            "steps": get_sheet_info('cultivation_step', crop_id),
-            "risks": get_sheet_info('risk_associated', crop_id)
+            "name": str(match['crop_name']),
+            "image": match.get('image_file', None),
+            "requirements": get_info('crop_requirement', cid),
+            "steps": get_info('cultivation_step', cid),
+            "risks": get_info('risk_associated', cid)
         }
     except Exception as e:
-        print(f"Excel Error: {e}")
+        print(f"DB Error: {e}")
         return None
 
 @cache.memoize()
-def get_translated_crop_data(crop_name, target_lang):
-    data = search_excel(crop_name)
-    if not data or target_lang == 'en':
-        return data
+def get_translated_crop_data(user_input, target_lang):
+    """Processes search, finds the crop, and translates the entire report."""
+    english_name = translate_to_english(user_input, target_lang)
+    data = search_excel(english_name)
+    
+    if not data or target_lang == 'en': return data
 
     try:
         translator = GoogleTranslator(source='auto', target=target_lang)
-        # Prepare list for batch translation
         to_translate = [data['name']]
         sections = ['requirements', 'steps', 'risks']
-
+        
+        # 1. Collect all text for BATCH translation (faster and reliable)
         for s in sections:
-            cols = data[s]['columns']
-            to_translate.extend([str(c) for c in cols])
+            to_translate.extend([str(c) for c in data[s]['columns']])
             for row in data[s]['rows']:
-                for col_name in cols:
-                    val = row.get(col_name, "")
+                for col in data[s]['columns']:
+                    val = row.get(col, "")
                     to_translate.append(str(val) if pd.notnull(val) else "")
-
+        
         translated_list = translator.translate_batch(to_translate)
-
-        # Map translations back
+        
+        # 2. Re-map translated values back to dictionary
         cursor = 0
         data['name'] = translated_list[cursor]
         cursor += 1
-
+        
         for s in sections:
             old_cols = data[s]['columns']
-            new_cols = []
-            for _ in old_cols:
-                new_cols.append(translated_list[cursor])
-                cursor += 1
+            new_cols = [translated_list[cursor + i] for i in range(len(old_cols))]
+            cursor += len(old_cols)
             
             new_rows = []
             for _ in data[s]['rows']:
-                new_row = {}
-                for i in range(len(new_cols)):
-                    new_row[new_cols[i]] = translated_list[cursor]
-                    cursor += 1
+                new_row = {new_cols[i]: translated_list[cursor + i] for i in range(len(new_cols))}
                 new_rows.append(new_row)
-            
-            data[s]['columns'] = new_cols
-            data[s]['rows'] = new_rows
-        
+                cursor += len(new_cols)
+            data[s]['columns'], data[s]['rows'] = new_cols, new_rows
         return data
-    except Exception as e:
-        print(f"Translation Error: {e}")
-        return data
+    except: return data
 
 @app.route('/')
 def home():
     try:
         df = pd.read_excel('database.xlsx', sheet_name='crop_name')
         crops = df.iloc[:, 1].dropna().unique().tolist()
-    except Exception as e:
-        print(f"Home Error: {e}")
-        crops = []
+    except: crops = []
     return render_template('index.html', crops=crops)
 
 @app.route('/get_crop', methods=['POST'])
@@ -111,14 +121,22 @@ def get_crop():
     user_search = request.form.get('search_box')
     target_lang = request.form.get('language', 'en')
     result = get_translated_crop_data(user_search, target_lang)
-    if result:
-        # Fixed: your template call was 'results.html' but most Flask apps use 'result.html'
-        # Change this to match your actual filename in the templates folder
-        return render_template('result.html', data=result)
-    return "Crop not found!"
+    if result: return render_template('results.html', data=result)
+    return f"Crop '{user_search}' not found!"
+
+@app.route('/recommend', methods=['POST'])
+def recommend():
+    try:
+        n, p, k = request.form.get('n'), request.form.get('p'), request.form.get('k')
+        df = pd.read_excel('database.xlsx', sheet_name='crop_name')
+        df.columns = df.columns.astype(str).str.strip().str.lower()
+        recommended = [row['crop_name'] for _, row in df.iterrows() 
+                       if parse_range(row.get('n_range'), n) and 
+                          parse_range(row.get('p_range'), p) and 
+                          parse_range(row.get('k_range'), k)]
+        return render_template('index.html', crops=df.iloc[:,1].tolist(), rec_results=recommended)
+    except: return "Check Excel NPK range format (e.g. 100-150)."
 
 if __name__ == '__main__':
-    # Bind to PORT provided by Render or default to 5000
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
-
+    if not os.path.exists('flask_cache'): os.makedirs('flask_cache')
+    app.run(debug=True)
