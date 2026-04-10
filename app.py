@@ -121,7 +121,7 @@ def get_crop():
     user_search = request.form.get('search_box')
     target_lang = request.form.get('language', 'en')
     result = get_translated_crop_data(user_search, target_lang)
-    if result: return render_template('results.html', data=result)
+    if result: return render_template('result.html', data=result)
     return f"Crop '{user_search}' not found!"
 
 @app.route('/recommend', methods=['POST'])
