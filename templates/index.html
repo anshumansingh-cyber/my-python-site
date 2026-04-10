@@ -21,7 +21,6 @@
 <body>
     <h1 style="color: #1b5e20;">🌾 Indian Agriculture Portal</h1>
     <div class="flex-container">
-        <!-- Search Section -->
         <div class="card">
             <h2>🔍 Crop Information</h2>
             <form action="/get_crop" id="search-form" method="POST" onsubmit="showLoader()">
@@ -31,13 +30,9 @@
                     <option value="bn" data-voice="bn-IN">Bengali (বাংলা)</option>
                     <option value="mr" data-voice="mr-IN">Marathi (मराठी)</option>
                     <option value="te" data-voice="te-IN">Telugu (తెలుగు)</option>
-                    <option value="ta" data-voice="ta-IN">Tamil (தமிழ்)</option>
-                    <option value="gu" data-voice="gu-IN">Gujarati (ગુજરાતી)</option>
-                    <option value="kn" data-voice="kn-IN">Kannada (ਕನ್ನಡ)</option>
-                    <option value="ml" data-voice="ml-IN">Malayalam (മലയാളം)</option>
                 </select>
                 <button type="button" class="btn voice-btn" id="voice-trigger">🎤 Click to Speak</button>
-                <input type="text" name="search_box" id="search-input" list="crop_list" placeholder="Speak or Type Crop Name..." required autocomplete="off">
+                <input type="text" name="search_box" id="search-input" list="crop_list" placeholder="Speak or Type Crop Name..." required>
                 <datalist id="crop_list">
                     {% for crop in crops %} <option value="{{ crop }}"> {% endfor %}
                 </datalist>
@@ -46,10 +41,8 @@
             </form>
         </div>
 
-        <!-- NPK Section -->
         <div class="card">
             <h2>🧪 NPK Recommender</h2>
-            <p style="font-size: 13px; color: #666;">Enter soil test values (kg/ha)</p>
             <form action="/recommend" method="POST">
                 <input type="number" name="n" placeholder="Nitrogen (N)" required>
                 <input type="number" name="p" placeholder="Phosphorus (P)" required>
@@ -78,34 +71,18 @@
 
         if ('webkitSpeechRecognition' in window) {
             const recognition = new webkitSpeechRecognition();
-            recognition.continuous = false;
-
             voiceBtn.addEventListener('click', () => {
                 recognition.lang = langSelect.options[langSelect.selectedIndex].getAttribute('data-voice');
                 recognition.start();
                 voiceBtn.classList.add('listening');
-                voiceBtn.innerText = 'Listening...';
             });
-
             recognition.onresult = (event) => {
                 searchInput.value = event.results[0][0].transcript.replace(/\.$/, ""); 
                 voiceBtn.classList.remove('listening');
-                voiceBtn.innerText = '🎤 Click to Speak';
-                searchForm.submit(); // Automatic search
+                searchForm.submit();
             };
-
-            recognition.onerror = () => {
-                voiceBtn.classList.remove('listening');
-                voiceBtn.innerText = '🎤 Click to Speak';
-            };
-        } else {
-            voiceBtn.style.display = 'none';
         }
-
-        function showLoader() {
-            document.getElementById('loader').style.display = 'block';
-            document.getElementById('search-btn').innerText = 'Translating...';
-        }
+        function showLoader() { document.getElementById('loader').style.display = 'block'; }
     </script>
 </body>
 </html>
