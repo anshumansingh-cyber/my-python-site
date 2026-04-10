@@ -47,7 +47,8 @@
 
         {% if data.image %}
         <div class="crop-img-box" style="text-align: center; margin: 20px 0;">
-            <img src="{{ url_for('static', filename='images/' + data.image) }}" alt="{{ data.name }}">
+           <img src="{{ url_for('static', filename=data.image) }}" alt="{{ data.name }}">
+
         </div>
         {% endif %}
 
